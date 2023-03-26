@@ -11,19 +11,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 615501dbe4f3fe94fbf4b564abb10237, type: 3}
   m_Name: ModConfig
   m_EditorClassIdentifier: 
-  id: fishing
-  title: Fishing
-  author: TracksJosh
-  description: 'What is your luck?
+  id: superpofishin
+  title: Superpofishin'
+  author: BakersDozenBagels
+  description: 'One fish, two fish, red fish, blue fish,
+
+    three fish, four fish, many, many more fish.
 
 
-    Id: fishing
+    Id: superpofishin
 
 
-    Manual: ktane.timwi.de/HTML/Fishing.html
-
-
-    Don''t venture off in the Letter Sea'
-  version: 2.01
+    TP supported'
+  version: 1.0
   outputFolder: build
   previewImage: {fileID: 2800000, guid: 0b3e2bfc5f5c8ff42b3db82a24e440a0, type: 3}
