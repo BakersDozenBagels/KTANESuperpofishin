@@ -185,7 +185,7 @@ public class Superpofishin : MonoBehaviour
     private readonly List<Turn> _pages = new List<Turn>();
     private List<List<int>> _solution;
     private readonly List<int> _inputSequence = new List<int>();
-    private List<int> _fishOrder;
+    private List<int> _fishOrder, _displayOrder;
 
     private int _page, _solutionCount;
     private int Page
@@ -199,9 +199,9 @@ public class Superpofishin : MonoBehaviour
             if(value > LastPage || value < 0)
                 throw new ArgumentException("Bad page number " + value + " (expected [0-" + LastPage + "])");
 
-            FishDisplays[0].sprite = Fish[_pages[value].Asked];
-            FishDisplays[1].sprite = Fish[_pages[value].Card + PlayerCount];
-            FishDisplays[2].sprite = Fish[_pages[value].Response ? PlayerCount + PlayerCount : PlayerCount + PlayerCount + 1];
+            FishDisplays[_displayOrder[0]].sprite = Fish[_pages[value].Asked];
+            FishDisplays[_displayOrder[1]].sprite = Fish[_pages[value].Card + PlayerCount];
+            FishDisplays[_displayOrder[2]].sprite = Fish[_pages[value].Response ? PlayerCount + PlayerCount : PlayerCount + PlayerCount + 1];
 
             _page = value;
         }
@@ -228,13 +228,17 @@ public class Superpofishin : MonoBehaviour
     private void GeneratePuzzle()
     {
         Fish.Shuffle();
-        FishDisplays.Shuffle();
+        _displayOrder = Enumerable.Range(0, 3).OrderBy(_ => Random.value).ToList();
         int majoriter = 0;
 
         TryAgain:
         majoriter++;
-        if(majoriter > 1000)
+        if(majoriter > 10000)
+        {
+            Log("Error in generation, force-solving...");
+            GetComponent<KMBombModule>().HandlePass();
             throw new Exception("Generation limit reached!");
+        }
 
         _pages.Clear();
         int[,] heldCards = new int[PlayerCount, PlayerCount];
@@ -299,7 +303,7 @@ public class Superpofishin : MonoBehaviour
             iter++;
             if(iter > 30)
             {
-                Log("Generation failed (code 1), retrying...", quiet: true);
+                Log("Generation failed (code 1), retrying... (attempt " + majoriter + ")", quiet: true);
                 goto TryAgain;
             }
 
@@ -310,15 +314,39 @@ public class Superpofishin : MonoBehaviour
         }
         while(heldCards.Rows().SelectMany(i => i).Any(i => i == 0));
 
+        if(!heldCards.Rows().All(r => r.SumPositive() == 4))
+        {
+            Log("Generation failed (code 2), retrying... (attempt " + majoriter + ")", quiet: true);
+            goto TryAgain;
+        }
+
+        if(!heldCards.Columns().Select(c => c.SumPositive()).SequenceEqual(cardCounts))
+        {
+            Log("Generation failed (code 3), retrying... (attempt " + majoriter + ")", quiet: true);
+            goto TryAgain;
+        }
+
+        if(_pages.SelectMany(p => new int[] { p.Asked, p.Card + PlayerCount, PlayerCount + PlayerCount + (p.Response ? 1 : 0) }).Distinct().Count() < 11)
+        {
+            Log("Generation failed (code 4), retrying... (attempt " + majoriter + ")", quiet: true);
+            goto TryAgain;
+        }
+
         if(!CheckUnique())
         {
-            Log("Generation failed (code 0), retrying...", quiet: true);
+            Log("Generation failed (code 0), retrying... (attempt " + majoriter + ")", quiet: true);
             goto TryAgain;
         }
 
         Log("Fish shown:");
         foreach(Turn t in _pages)
-            Log(Fish[t.Asked].name + " " + Fish[t.Card + PlayerCount].name + " " + Fish[t.Response ? PlayerCount + PlayerCount : PlayerCount + PlayerCount + 1].name);
+        {
+            int[] d = new int[] { t.Asked, t.Card + PlayerCount, t.Response ? PlayerCount + PlayerCount : PlayerCount + PlayerCount + 1 };
+            Log(Fish[d[_displayOrder[0]]].name + ", " + Fish[d[_displayOrder[1]]].name + ", " + Fish[d[_displayOrder[2]]].name);
+        }
+
+        Log("Players are in position " + (_displayOrder[0] + 1) + ", cards in position " + (_displayOrder[1] + 1) + ", and responses in position " + (_displayOrder[2] + 1) + ".");
+        Log("Player order is: " + Enumerable.Range(0,PlayerCount).Select(i => Fish[i].name).Join(", "));
 
         _solution = Enumerable
             .Range(0, PlayerCount)
@@ -331,7 +359,7 @@ public class Superpofishin : MonoBehaviour
                     .SelectMany(x => x.e <= 0 ? new int[0] : Enumerable.Repeat(x.i + PlayerCount, x.e)))
                 .ToList())
             .ToList();
-        Log("Solution: " + _solution.Select(pool => "{" + pool.Select(i => Fish[i].name).Join(" ") + "}").Join(""));
+        Log("Solution: " + _solution.Select(pool => "{" + pool.Select(i => Fish[i].name).Join(", ") + "}").Join(""));
 
         foreach(List<int> l in _solution)
             l.Sort();
@@ -413,7 +441,8 @@ public class Superpofishin : MonoBehaviour
     private bool CheckUnique()
     {
         return Enumerable.Range(0, PlayerCount).AllArrangements().All(o =>
-            CheckUnique(o.ToArray(), false, true)
+            (o.SequenceEqual(new int[] { 0, 1, 2, 3, 4 }) || CheckUnique(o.ToArray(), false, false))
+            && CheckUnique(o.ToArray(), false, true)
             && CheckUnique(o.ToArray(), true, false)
             && CheckUnique(o.ToArray(), true, true));
     }
