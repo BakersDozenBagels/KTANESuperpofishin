@@ -332,6 +332,12 @@ public class Superpofishin : MonoBehaviour
             goto TryAgain;
         }
 
+        if(cardCounts.Contains(0))
+        {
+            Log("Generation failed (code 5), retrying... (attempt " + majoriter + ")", quiet: true);
+            goto TryAgain;
+        }
+
         if(!CheckUnique())
         {
             Log("Generation failed (code 0), retrying... (attempt " + majoriter + ")", quiet: true);
