@@ -259,9 +259,8 @@ public class Superpofishin : MonoBehaviour
             }
             catch(Exception)
             {
-                Debug.Log(heldCards.Columns().Select(c => c.Join(" ")).Join(" | "));
-                Debug.Log(Enumerable.Range(0, PlayerCount).Select(p => cardCounts[p]).Join(" | "));
-                throw;
+                Log("Generation failed (code 6), retrying... (attempt " + majoriter + ")", quiet: true);
+                goto TryAgain;
             }
             if(heldCards[current, card] == 0)
                 heldCards[current, card] = 1;
